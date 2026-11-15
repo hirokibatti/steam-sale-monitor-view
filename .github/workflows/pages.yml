@@ -1,4 +1,5 @@
 name: Deploy Steam monitor web view
+# Pages source is configured to GitHub Actions in repository settings.
 on:
   push:
     branches: [main]
