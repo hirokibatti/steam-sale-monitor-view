@@ -51,10 +51,10 @@ function parseCSV(text){
     return rows;
 }
 
-const yen=v=>v===''||v==null?'?':'?'+Number(v).toLocaleString('ja-JP');
+const yen=v=>v===''||v==null?'-':'\\u00A5'+Number(v).toLocaleString('ja-JP');
 
 function render(){
-    document.getElementById('status').textContent='?????????????';
+    document.getElementById('status').textContent='データを読み込んでいます…';
 
     Promise.all([
         fetch(csvUrl+'?v='+Date.now()),
@@ -62,7 +62,7 @@ function render(){
     ])
     .then(async responses=>{
         for(const r of responses){
-            if(!r.ok)throw Error('CSV????????');
+            if(!r.ok)throw Error('CSVの読み込みに失敗しました');
         }
         return Promise.all(responses.map(r=>r.text()));
     })
@@ -89,14 +89,14 @@ function render(){
 
         const updated=items.reduce((m,x)=>x.date>m?x.date:m,'');
         document.getElementById('updated').textContent=
-            '??????'+(updated||'??')+'????????';
+            '最終更新：'+(updated||'未取得')+' UTC';
 
         window.steamItems=items;
         draw();
     })
     .catch(e=>{
         document.getElementById('status').textContent=
-            e.message+'?GitHub Pages??????????????????????';
+            e.message+'。GitHub Pagesの公開状態を確認してください。';
     });
 }
 function draw(){const q=document.getElementById('search').value.trim().toLowerCase(),saleOnly=document.getElementById('filter').value==='sale';const items=(window.steamItems||[]).filter(x=>(!q||x.name.toLowerCase().includes(q))&&(!saleOnly||Number(x.discount)>0));document.getElementById('summary').textContent=items.length+'件表示 ／ 登録 '+(window.steamItems||[]).length+'件';const list=document.getElementById('list');list.innerHTML='';if(!items.length){list.innerHTML='<div id="status">該当するゲームがありません</div>';return}
