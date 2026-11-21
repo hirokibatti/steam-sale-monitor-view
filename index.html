@@ -89,7 +89,7 @@ function render(){
                 const saleA=Number(a.discount)>0?1:0,saleB=Number(b.discount)>0?1:0;
                 if(saleA!==saleB)return saleB-saleA;
                 const parseEnd=s=>{
-                    const m=(s||'').match(/^(\\d{4})-(\\d{2})-(\\d{2})\\s+(\\d{2}):(\\d{2})$/);
+                    const m=(s||'').match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2})$/);
                     return m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3]),Number(m[4]),Number(m[5])).getTime():NaN;
                 };
                 const endA=parseEnd(a.saleEnd),endB=parseEnd(b.saleEnd);
