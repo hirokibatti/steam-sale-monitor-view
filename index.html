@@ -15,7 +15,7 @@ input{flex:1;min-width:170px}button{cursor:pointer}
 #summary{color:var(--muted);font-size:13px;margin:8px 0 12px}
 .item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px;margin:9px 0}
 .name{font-weight:650;line-height:1.45;margin-bottom:9px;color:#fff;text-decoration:none;display:block}
-.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
 .metric{background:#141922;border-radius:8px;padding:8px}.metric small{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.metric strong{font-size:15px}
 .discount{color:var(--yellow)}.sale{border-color:#8a6334}.low{color:var(--green)}
 .links{display:flex;gap:14px;margin-top:10px;font-size:12px}.links a{color:#9fc8ff;text-decoration:none}
@@ -51,7 +51,7 @@ function parseCSV(text){
     return rows;
 }
 
-const yen=v=>v===''||v==null?'-':String.fromCharCode(165)+Number(v).toLocaleString('ja-JP');
+const yen=v=>v===''||v==null?'—':String.fromCharCode(165)+Number(v).toLocaleString('ja-JP');
 
 function render(){
     document.getElementById('status').textContent='データを読み込んでいます…';
@@ -79,17 +79,29 @@ function render(){
             const id=(r[1]||'').trim();
             if(id)data.set(id,{
                 id,name:r[2],current:r[3],regular:r[4],
-                discount:r[5],low:r[6],event:r[7],date:r[0]
+                discount:r[5],low:r[6],event:r[7],itadLow:r[8]||'',saleEnd:r[9]||'',date:r[0]
             });
         }
 
         const items=[...data.values()]
             .filter(x=>activeIds.has(x.id))
-            .sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+            .sort((a,b)=>{
+                const saleA=Number(a.discount)>0?1:0,saleB=Number(b.discount)>0?1:0;
+                if(saleA!==saleB)return saleB-saleA;
+                const parseEnd=s=>{
+                    const m=(s||'').match(/^(\\d{4})-(\\d{2})-(\\d{2})\\s+(\\d{2}):(\\d{2})$/);
+                    return m?new Date(Number(m[1]),Number(m[2])-1,Number(m[3]),Number(m[4]),Number(m[5])).getTime():NaN;
+                };
+                const endA=parseEnd(a.saleEnd),endB=parseEnd(b.saleEnd);
+                const validA=Number.isFinite(endA),validB=Number.isFinite(endB);
+                if(validA&&validB&&endA!==endB)return endA-endB;
+                if(validA!==validB)return validA?-1:1;
+                return a.name.localeCompare(b.name,'ja');
+            });
 
         const updated=items.reduce((m,x)=>x.date>m?x.date:m,'');
         document.getElementById('updated').textContent=
-            '最終更新：'+(updated||'未取得')+' UTC';
+            '最終データ：'+(updated||'不明')+'（CSVの最新記録）';
 
         window.steamItems=items;
         draw();
@@ -100,7 +112,7 @@ function render(){
     });
 }
 function draw(){const q=document.getElementById('search').value.trim().toLowerCase(),saleOnly=document.getElementById('filter').value==='sale';const items=(window.steamItems||[]).filter(x=>(!q||x.name.toLowerCase().includes(q))&&(!saleOnly||Number(x.discount)>0));document.getElementById('summary').textContent=items.length+'件表示 ／ 登録 '+(window.steamItems||[]).length+'件';const list=document.getElementById('list');list.innerHTML='';if(!items.length){list.innerHTML='<div id="status">該当するゲームがありません</div>';return}
-for(const x of items){const typ=x.id.split(':')[0],id=x.id.split(':').pop(),discount=Math.round(Number(x.discount)*100),path=typ==='sub'?'sub':typ==='bundle'?'bundle':'app';const card=document.createElement('article');card.className='item'+(discount>0?' sale':'');const a=document.createElement('a');a.className='name';a.textContent=x.name;a.href='https://steamdb.info/'+path+'/'+id+'/#prices';a.target='_blank';a.rel='noopener';card.appendChild(a);const metrics=document.createElement('div');metrics.className='metrics';const values=[['現在価格',yen(x.current)],['通常価格',yen(x.regular)],['割引率',discount+'%']];for(const [label,value] of values){const m=document.createElement('div');m.className='metric';const s=document.createElement('small');s.textContent=label;const strong=document.createElement('strong');strong.textContent=value;if(label==='割引率'&&discount>0)strong.className='discount';m.append(s,strong);metrics.appendChild(m)}card.appendChild(metrics);const links=document.createElement('div');links.className='links';const steam=document.createElement('a');steam.href='https://store.steampowered.com/'+path+'/'+id+'/';steam.target='_blank';steam.rel='noopener';steam.textContent='Steamストア';const db=document.createElement('a');db.href=a.href;db.target='_blank';db.rel='noopener';db.textContent='SteamDB価格履歴';links.append(steam,db);card.appendChild(links);list.appendChild(card)}}
+for(const x of items){const typ=x.id.split(':')[0],id=x.id.split(':').pop(),discount=Math.round(Number(x.discount)*100),path=typ==='sub'?'sub':typ==='bundle'?'bundle':'app';const card=document.createElement('article');card.className='item'+(discount>0?' sale':'');const a=document.createElement('a');a.className='name';a.textContent=x.name;a.href='https://steamdb.info/'+path+'/'+id+'/#prices';a.target='_blank';a.rel='noopener';card.appendChild(a);const metrics=document.createElement('div');metrics.className='metrics';const values=[['現在価格',yen(x.current)],['通常価格',yen(x.regular)],['割引率',discount+'%'],['ITAD過去最安値',x.itadLow!==''?yen(x.itadLow):'未取得'],['セール終了日時',x.saleEnd||'未公開・対象外']];for(const [label,value] of values){const m=document.createElement('div');m.className='metric';const s=document.createElement('small');s.textContent=label;const strong=document.createElement('strong');strong.textContent=value;if(label==='割引率'&&discount>0)strong.className='discount';m.append(s,strong);metrics.appendChild(m)}card.appendChild(metrics);const links=document.createElement('div');links.className='links';const steam=document.createElement('a');steam.href='https://store.steampowered.com/'+path+'/'+id+'/';steam.target='_blank';steam.rel='noopener';steam.textContent='Steamストア';const db=document.createElement('a');db.href=a.href;db.target='_blank';db.rel='noopener';db.textContent='SteamDB価格履歴';links.append(steam,db);card.appendChild(links);list.appendChild(card)}}
 document.getElementById('search').addEventListener('input',draw);document.getElementById('filter').addEventListener('change',draw);document.getElementById('refresh').addEventListener('click',render);render();
 </script>
 </body></html>
