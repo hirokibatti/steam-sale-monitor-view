@@ -51,7 +51,7 @@ function parseCSV(text){
     return rows;
 }
 
-const yen=v=>v===''||v==null?'-':'\\u00A5'+Number(v).toLocaleString('ja-JP');
+const yen=v=>v===''||v==null?'-':String.fromCharCode(165)+Number(v).toLocaleString('ja-JP');
 
 function render(){
     document.getElementById('status').textContent='データを読み込んでいます…';
