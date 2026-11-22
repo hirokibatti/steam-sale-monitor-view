@@ -89,7 +89,7 @@ function render(){
 
         const updated=items.reduce((m,x)=>x.date>m?x.date:m,'');
         document.getElementById('updated').textContent=
-            '最終更新：'+(updated||'日時不明')+'（UTC）';
+            '最終更新：'+(updated ? (updated.trim().endsWith('UTC') ? updated.trim() : updated.trim()+' UTC') : '日時不明');
 
         window.steamItems=items;
         draw();
